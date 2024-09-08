@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacion Paradoja de Bertrand - Metodos Geometricos</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .cuerda {
+            stroke-width: 2;
+        }
+        .triangulo {
+            stroke: black;
+            stroke-width: 2;
+        }
+        .circulo {
+            stroke: blue;
+            fill: none;
+            stroke-width: 2;
+        }
+        .circulo-inscrito {
+            stroke: red;
+            fill: none;
+            stroke-width: 2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Simulacion de la Paradoja de Bertrand - Metodos Geometricos</h2>
+
+    <!-- Menu de seleccion de metodo -->
+    <label for="method">Selecciona un metodo:</label>
+    <select id="method">
+        <option value="1">Solucion (a): Perpendicular al diametro</option>
+        <option value="2">Solucion (b): Angulo al azar</option>
+        <option value="3">Solucion (c): Punto en circulo inscrito</option>
+    </select>
+
+    <!-- Control de velocidad como radio botones -->
+    <p>Velocidad de simulacion:</p>
+    <label><input type="radio" name="speed" value="200"> Rapido</label>
+    <label><input type="radio" name="speed" value="1000" checked> Medio</label>
+    <label><input type="radio" name="speed" value="2500"> Lento</label>
+
+    <!-- Conteo de aciertos, fallos y probabilidad -->
+    <p><strong>Aciertos:</strong> <span id="aciertos">0</span></p>
+    <p><strong>Fallos:</strong> <span id="fallos">0</span></p>
+    <p><strong>Total:</strong> <span id="total">0</span></p>
+    <p><strong>Probabilidad estimada:</strong> <span id="probabilidad">0</span></p>
+
+    <h3>Descripcion del Metodo</h3>
+    <p id="descripcion-metodo">Selecciona un metodo para ver su descripcion.</p>
+    <p><strong>Probabilidad teorica:</strong> <span id="probabilidad-teorica">0</span></p>
+
+    <svg id="canvas" width="600" height="600"></svg>
+
+    <div class="info"></div>
+        <h3>Informacion del Proyecto</h3>
+        <!--<p><strong>Integrantes:</strong> Nombre1, Nombre2, Nombre 3</p>-->
+        <p><strong>Curso:</strong> Teoria de la Probabilidad</p>
+        <p><strong>Año:</strong> 2024</p>
+    </div>
+
+    <div class="conclusion">
+        <h3>Conclusion</h3>
+        <p>
+            La paradoja de Bertrand ilustra que el concepto de "azar" no es unico y depende de la definicion de las reglas de seleccion. Diferentes metodos para trazar una cuerda "al azar" en un circulo producen resultados distintos, demostrando que las distribuciones de probabilidad no son objetivas.
+        </p>
+        <p>
+            La clave esta en las hipotesis utilizadas para definir la probabilidad. El concepto clasico de probabilidad, como el de Laplace, asume equiprobabilidad en espacios finitos, mientras que la probabilidad geometrica generaliza este concepto a espacios infinitos, pero los resultados dependen de la medida definida.
+        </p>
+        <p>
+            No existe una forma "correcta" de definir la probabilidad. La eleccion de la medida siempre dependera de las suposiciones consideradas mas adecuadas para el problema real. Esto enfatiza que lo que parece una solucion objetiva esta condicionado por las hipotesis subyacentes que debemos conocer y cuestionar.
+        </p>
+    </div>
+
+
+    <script>
+        function actualizarDescripcion(metodo) {
+            let descripcion = '';
+            let probabilidadTeorica = '';
+            switch(metodo) {
+                case '1':
+                    descripcion = 'Este metodo elige una cuerda perpendicular al diametro de un circulo. Se selecciona un punto al azar en un diametro y se dibuja una cuerda perpendicular a ese punto.';
+                    probabilidadTeorica = '1/2 (0.5000)';
+                    break;
+                case '2':
+                    descripcion = 'Este metodo selecciona dos puntos en el borde del circulo al azar y dibuja una cuerda entre ellos. La seleccion es uniforme en terminos de angulos.';
+                    probabilidadTeorica = '1/3 (0.3333)';
+                    break;
+                case '3':
+                    descripcion = 'Este metodo selecciona un punto aleatorio dentro del circulo y luego dibuja una cuerda perpendicular a la linea que conecta el centro del circulo con ese punto.';
+                    probabilidadTeorica = '1/4 (0.2500)';
+                    break;
+                default:
+                    descripcion = 'Selecciona un metodo para ver su descripcion.';
+                    probabilidadTeorica = '0';
+            }
+            document.getElementById('descripcion-metodo').textContent = descripcion;
+            document.getElementById('probabilidad-teorica').textContent = probabilidadTeorica;
+        }
+        document.getElementById('method').addEventListener('change', function() {
+            const metodoSeleccionado = this.value;
+            actualizarDescripcion(metodoSeleccionado);
+        });
+
+        window.onload = function() {
+            const metodoSeleccionado = document.getElementById('method').value;
+            actualizarDescripcion(metodoSeleccionado);
+        };
+
+        const width = 600, height = 600;
+        const R = 200;  // Radio del circulo
+        const centerX = width / 2, centerY = height / 2;
+        const svg = d3.select("#canvas");
+
+        let aciertos = 0;
+        let fallos = 0;
+        let total = 0;
+        let velocidad = 1000;  // Velocidad inicial
+        let intervalo;  // Para manejar el ciclo de simulacion
+
+        // Dibujar el circulo grande
+        svg.append("circle")
+            .attr("cx", centerX)
+            .attr("cy", centerY)
+            .attr("r", R)
+            .attr("class", "circulo");
+
+        // Dibujar el triangulo equilatero inscrito de forma vertical
+        const theta = [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6];
+        const trianglePoints = theta.map(t => [centerX + R * Math.cos(t), centerY + R * Math.sin(t)]);
+
+        svg.append("polygon")
+            .attr("points", trianglePoints.map(p => p.join(",")).join(" "))
+            .attr("class", "triangulo")
+            .attr("fill", "none");
+
+        // Dibujar el circulo inscrito al triangulo equilatero
+        const rInscrito = R / 2;
+        svg.append("circle")
+            .attr("cx", centerX)
+            .attr("cy", centerY)
+            .attr("r", rInscrito)
+            .attr("class", "circulo-inscrito");
+
+        svg.append("line")
+            .attr("x1", centerX)
+            .attr("y1", centerY - R)
+            .attr("x2", centerX)
+            .attr("y2", centerY + R)
+            .attr("stroke", "black")
+            .attr("stroke-width", 2);
+
+        // Metoddo 1
+        function metodo_a() {
+            
+            const M = Math.random() * 2 * R - R;  // Punto M en el diametro
+            const perpendicularY = centerY + M;
+            const cuerdaLongitud = 2 * Math.sqrt(R * R - M * M);
+
+            return {
+                x1: centerX - cuerdaLongitud / 2,
+                y1: perpendicularY,
+                x2: centerX + cuerdaLongitud / 2,
+                y2: perpendicularY,
+                favorable: Math.abs(M) <= rInscrito
+            };
+        }
+
+        //Metodo 2
+        function metodo_b() {
+            const fixedPoint = trianglePoints[0];  
+            
+            const theta = Math.random() * 360;  
+            const angleRad = theta * (Math.PI / 180);  
+        
+            const x2 = centerX + R * Math.cos(angleRad);  
+            const y2 = centerY + R * Math.sin(angleRad);  
+        
+            let favorable = false;
+            const thetaFromFixedPoint = Math.atan2(y2 - fixedPoint[1], x2 - fixedPoint[0]) * (180 / Math.PI);
+            const adjustedTheta = (thetaFromFixedPoint + 360) % 360;
+            if ((adjustedTheta >= 60 && adjustedTheta <= 120) || (adjustedTheta >= 240 && adjustedTheta <= 300)) {
+                favorable = true;
+            }
+            return {
+                x1: fixedPoint[0],  
+                y1: fixedPoint[1],
+                x2: x2, 
+                y2: y2,
+                favorable: favorable 
+            };
+        }
+
+    //Metodo 3
+    function metodo_c() {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.sqrt(Math.random()) * R; 
+        const Mx = centerX + radius * Math.cos(angle);
+        const My = centerY + radius * Math.sin(angle); 
+    
+        const OM = Math.sqrt((Mx - centerX) ** 2 + (My - centerY) ** 2);
+    
+        const perpSlope = -(Mx - centerX) / (My - centerY); 
+        const perpAngle = Math.atan(perpSlope); 
+        const halfChord = Math.sqrt(R * R - OM * OM); 
+        const x1 = Mx - halfChord * Math.cos(perpAngle); 
+        const y1 = My - halfChord * Math.sin(perpAngle);
+        const x2 = Mx + halfChord * Math.cos(perpAngle); 
+        const y2 = My + halfChord * Math.sin(perpAngle);
+    
+        const favorable = OM <= rInscrito;
+    
+        const colorPuntoM = favorable ? "green" : "red";
+    
+        const puntoM = svg.append("circle")
+            .attr("cx", Mx)
+            .attr("cy", My)
+            .attr("r", 5)
+            .attr("class", "point")
+            .attr("fill", colorPuntoM);
+    
+        // Dibuja OM
+        const lineaOM = svg.append("line")
+            .attr("x1", centerX)
+            .attr("y1", centerY)
+            .attr("x2", Mx)
+            .attr("y2", My)
+            .attr("stroke", "grey")
+            .attr("stroke-width", 1)
+            .style("opacity", 0) 
+            .transition()
+            .duration(200)  
+            .style("opacity", 1)
+            .transition()
+            .duration(300)
+            .style("opacity", 0); 
+    
+        // Dibujar la cuerda perpendicular a OM
+        const cuerda = svg.append("line")
+            .attr("x1", x1)
+            .attr("y1", y1)
+            .attr("x2", x2)
+            .attr("y2", y2)
+            .attr("stroke", "grey")
+            .attr("stroke-width", 2)
+            .style("opacity", 0)  // Inicialmente invisible
+            .transition()
+            .duration(200)  
+            .style("opacity", 1)
+            .transition()
+            .duration(300)
+            .style("opacity", 0);  
+        //actualizarConteo(favorable);
+        // Elimina  cuerda  OM 
+        setTimeout(() => {
+            cuerda.transition().duration(velocidad / 4).style("opacity", 0).remove();  
+            lineaOM.transition().duration(velocidad / 4).style("opacity", 0).remove();  
+        }, velocidad);  
+        return {
+            favorable: favorable
+        };
+    }
+    
+    // actualizar  conteo  aciertos - fallos
+    function actualizarConteo(favorable) {
+        if (favorable) {
+            aciertos++;
+        } else {
+            fallos++;
+        }
+        total++;
+        document.getElementById("aciertos").textContent = aciertos;
+        document.getElementById("fallos").textContent = fallos;
+        document.getElementById("total").textContent = total;
+        document.getElementById("probabilidad").textContent = (aciertos / total).toFixed(4);
+    }
+    
+    // generar cuerdas por metodo 
+    function generarCuerda(metodo) {
+        let cuerda;
+        if (metodo === '1') {
+            cuerda = metodo_a();
+        } else if (metodo === '2') {
+            cuerda = metodo_b();
+        } else if (metodo === '3') {
+            cuerda = metodo_c();
+        }
+        const color = cuerda.favorable ? "green" : "red";
+        actualizarConteo(cuerda.favorable);
+        svg.append("line")
+            .attr("x1", cuerda.x1)
+            .attr("y1", cuerda.y1)
+            .attr("x2", cuerda.x2)
+            .attr("y2", cuerda.y2)
+            .attr("class", "cuerda")
+            .attr("stroke", color)
+            .style("opacity", 0)
+            .transition()
+            .duration(500)
+            .style("opacity", 1)
+            ;
+    }
+    
+    // Limpia cuerdas y reinicia conteo
+    function limpiar() {
+        svg.selectAll(".circle.point").remove(); 
+        svg.selectAll("circle.point").remove(); 
+        svg.selectAll(".cuerda").remove();
+        svg.selectAll(".line").remove();
+        svg.selectAll("line").remove();
+        aciertos = 0;
+        fallos = 0;
+        total = 0;
+        document.getElementById("aciertos").textContent = 0;
+        document.getElementById("fallos").textContent = 0;
+        document.getElementById("total").textContent = 0;
+        document.getElementById("probabilidad").textContent = 0;
+    }
+    
+    function iniciarSimulacion() {
+        limpiar();
+        const metodoSeleccionado = document.getElementById("method").value;
+        clearInterval(intervalo); 
+        intervalo = setInterval(() => generarCuerda(metodoSeleccionado), velocidad);
+        svg.selectAll("circle.point").remove(); 
+    }
+    document.querySelectorAll("input[name='speed']").forEach(radio => {
+        radio.addEventListener("change", function () {
+            velocidad = this.value;
+            iniciarSimulacion(); 
+        });
+    });
+    document.getElementById("method").addEventListener("change", iniciarSimulacion);
+    iniciarSimulacion();
+    </script>
+</body>
+</html>

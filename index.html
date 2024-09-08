@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacion Paradoja de Bertrand - Metodos Geometricos</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>Simulacion de la Paradoja de Bertrand - Metodos Geometricos</h2>
+
+    <!-- Menu de seleccion de metodo -->
+    <label for="method">Selecciona un metodo:</label>
+    <select id="method">
+        <option value="1">Solucion (a): Perpendicular al diametro</option>
+        <option value="2">Solucion (b): Angulo al azar</option>
+        <option value="3">Solucion (c): Punto en circulo inscrito</option>
+    </select>
+
+    <!-- Control de velocidad como radio botones -->
+    <p>Velocidad de simulacion:</p>
+    <label><input type="radio" name="speed" value="200"> Rapido</label>
+    <label><input type="radio" name="speed" value="1000" checked> Medio</label>
+    <label><input type="radio" name="speed" value="2500"> Lento</label>
+
+    <!-- Conteo de aciertos, fallos y probabilidad -->
+    <p><strong>Aciertos:</strong> <span id="aciertos">0</span></p>
+    <p><strong>Fallos:</strong> <span id="fallos">0</span></p>
+    <p><strong>Total:</strong> <span id="total">0</span></p>
+    <p><strong>Probabilidad estimada:</strong> <span id="probabilidad">0</span></p>
+
+    <h3>Descripcion del Metodo</h3>
+    <p id="descripcion-metodo">Selecciona un metodo para ver su descripcion.</p>
+    <p><strong>Probabilidad teorica:</strong> <span id="probabilidad-teorica">0</span></p>
+
+    <svg id="canvas" width="600" height="600"></svg>
+
+    <div class="info"></div>
+        <h3>Informacion del Proyecto</h3>
+        <!--<p><strong>Integrantes:</strong> Nombre1, Nombre2, Nombre 3</p>-->
+        <p><strong>Curso:</strong> Teoria de la Probabilidad</p>
+        <p><strong>Año:</strong> 2024</p>
+    </div>
+
+    <div class="conclusion">
+        <h3>Conclusion</h3>
+        <p>
+            La paradoja de Bertrand ilustra que el concepto de "azar" no es unico y depende de la definicion de las reglas de seleccion. Diferentes metodos para trazar una cuerda "al azar" en un circulo producen resultados distintos, demostrando que las distribuciones de probabilidad no son objetivas.
+        </p>
+        <p>
+            La clave esta en las hipotesis utilizadas para definir la probabilidad. El concepto clasico de probabilidad, como el de Laplace, asume equiprobabilidad en espacios finitos, mientras que la probabilidad geometrica generaliza este concepto a espacios infinitos, pero los resultados dependen de la medida definida.
+        </p>
+        <p>
+            No existe una forma "correcta" de definir la probabilidad. La eleccion de la medida siempre dependera de las suposiciones consideradas mas adecuadas para el problema real. Esto enfatiza que lo que parece una solucion objetiva esta condicionado por las hipotesis subyacentes que debemos conocer y cuestionar.
+        </p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
